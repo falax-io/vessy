@@ -17,6 +17,7 @@ This spec covers:
 - Core execution engine internals
 - Plugin SDK interface (slash commands contract)
 - Session and artifact management
+- Agent completion statuses and execution reports
 - Error handling
 - Testing strategy
 
@@ -69,6 +70,16 @@ tools:
 
 # Optional
 timeout: 120   # seconds; treated as error if exceeded
+
+# Optional: custom completion statuses (extend or replace the base set)
+# Base statuses are: Passed, Failed, Skipped
+# Custom values can be used as conditional edge labels in the Mermaid diagram
+statuses:
+  - Passed
+  - Failed
+  - Skipped
+  - partial        # custom example
+  - needs_review   # custom example
 ```
 
 **Agent types:**
@@ -109,18 +120,30 @@ flowchart LR
 - A node with no incoming edges is a start node and runs immediately.
 - Multiple nodes at the same dependency level run in parallel via `Promise.all`.
 - Unlabeled edges mean unconditional sequencing.
-- Labeled edges (`|success|`, `|error|`) are conditional: the executor reads the `status` field from the predecessor's `manifest.json` to determine which outgoing edge to follow.
+- Labeled edges are conditional: the executor reads the `status` field from the predecessor's `manifest.json` and follows the matching edge label. Labels must match a status value defined for that agent (e.g., `|Passed|`, `|Failed|`, `|needs_review|`).
 
 **Output manifest:** every agent writes a `manifest.json` to its session subfolder upon completion. This is the only structurally required file:
 
 ```json
 {
-  "status": "success",
-  "outputs": ["report.md", "data.json"]
+  "status": "Passed",
+  "outputs": ["report.md", "data.json"],
+  "report": {
+    "agent": "researcher",
+    "durationMs": 4200,
+    "invokedBy": "fetch_data",
+    "invoked": ["writer"],
+    "tokens": {
+      "input": 1200,
+      "output": 340,
+      "total": 1540,
+      "costUsd": 0.012
+    }
+  }
 }
 ```
 
-All other files in the subfolder are free-form artifacts of any type.
+All other files in the subfolder are free-form artifacts of any type. Token tracking applies only to `llm`-type agents; `script`-type agents report `tokens: null`.
 
 ---
 
@@ -148,6 +171,10 @@ Traverses and executes the DAG:
 ### ArtifactManager
 
 Creates and manages the session folder structure for each pipeline run.
+
+### ReportManager
+
+Collects execution metrics for each agent (wall-clock duration, token usage via provider SDK callbacks) and writes the `report` block into `manifest.json` at agent completion. At pipeline completion, aggregates all per-agent reports into a `report` block in `pipeline-run.json`.
 
 ---
 
@@ -190,17 +217,38 @@ Each agent receives the paths to its own output folder and its predecessors' out
 - `VESSY_OUTPUT_DIR` — absolute path to this agent's own output subfolder
 - `VESSY_INPUT_<AGENT_NAME>` — absolute path to each direct predecessor's subfolder (one var per predecessor, uppercased agent name)
 
-**`pipeline-run.json` structure:**
+**`pipeline-run.json` structure** (updated in real-time; `report` block added at completion):
 
 ```json
 {
   "pipeline": "research-and-write",
   "sessionId": "session-a3f7bc92",
   "startedAt": "2026-06-24T10:00:00Z",
-  "status": "running",
+  "completedAt": "2026-06-24T10:05:30Z",
+  "status": "Passed",
   "agents": {
-    "fetch_data": { "folder": "01-fetch_data", "status": "completed" },
-    "researcher": { "folder": "02-researcher", "status": "running" }
+    "fetch_data": { "folder": "01-fetch_data", "status": "Passed" },
+    "researcher": { "folder": "02-researcher", "status": "Passed" },
+    "analyst":    { "folder": "03-analyst",    "status": "Passed" },
+    "writer":     { "folder": "04-writer",     "status": "Passed" },
+    "publisher":  { "folder": "05-publisher",  "status": "Passed" }
+  },
+  "report": {
+    "totalDurationMs": 32000,
+    "status": "Passed",
+    "tokens": {
+      "input": 5400,
+      "output": 1200,
+      "total": 6600,
+      "costUsd": 0.048
+    },
+    "agentSummary": [
+      { "agent": "fetch_data", "status": "Passed", "durationMs": 3100, "tokens": null },
+      { "agent": "researcher", "status": "Passed", "durationMs": 8200, "tokens": { "total": 1540, "costUsd": 0.012 } },
+      { "agent": "analyst",    "status": "Passed", "durationMs": 7400, "tokens": { "total": 2100, "costUsd": 0.018 } },
+      { "agent": "writer",     "status": "Passed", "durationMs": 9100, "tokens": { "total": 2960, "costUsd": 0.024 } },
+      { "agent": "publisher",  "status": "Passed", "durationMs": 4200, "tokens": null }
+    ]
   }
 }
 ```
@@ -240,16 +288,46 @@ Adapters stream progress to the host platform via `AsyncIterable<RunEvent>`:
 ```typescript
 type RunEvent =
   | { type: 'agent:start';    agent: string; folder: string; session: string }
-  | { type: 'agent:complete'; agent: string; artifacts: string[] }
+  | { type: 'agent:complete'; agent: string; status: string; artifacts: string[]; report: AgentReport }
   | { type: 'agent:error';    agent: string; error: string }
-  | { type: 'pipeline:done';  sessionDir: string }
+  | { type: 'pipeline:done';  sessionDir: string; report: PipelineReport }
+
+interface AgentReport {
+  durationMs: number
+  invokedBy: string | null
+  invoked: string[]
+  tokens: { input: number; output: number; total: number; costUsd: number } | null
+}
+
+interface PipelineReport {
+  totalDurationMs: number
+  status: string
+  tokens: { input: number; output: number; total: number; costUsd: number }
+  agentSummary: Array<{ agent: string; status: string; durationMs: number; tokens: AgentReport['tokens'] }>
+}
 ```
 
 Each adapter translates these events into the platform's native output format (text output, notifications, etc.).
 
 ---
 
-## 7. Error Handling
+## 7. Agent Completion Statuses
+
+Every agent terminates with a status value written into its `manifest.json`. The base set is:
+
+| Status | Meaning |
+|---|---|
+| `Passed` | Agent completed successfully |
+| `Failed` | Agent encountered an unrecoverable error |
+| `Skipped` | Agent was not executed (e.g., conditional branch not taken) |
+
+Agents may declare additional custom statuses in their YAML `statuses` list. Custom statuses extend the base set and can be used as conditional edge labels in the Mermaid diagram. Edge labels must exactly match a status value (case-sensitive).
+
+The pipeline's own status in `pipeline-run.json` follows the same vocabulary: `Passed` if all executed nodes passed, `Failed` if any node failed without a handler, `Skipped` if the pipeline was aborted before completion.
+
+---
+
+## 8. Error Handling
 
 The `PipelineExecutor` follows a **fail-fast with optional recovery** policy:
 
