@@ -114,6 +114,21 @@ describe('PipelineExecutor', () => {
     expect(events.some(e => (e as { agent?: string }).agent === 'next')).toBe(false)
   })
 
+  it('propagates skip transitively to nodes downstream of a skipped conditional branch', async () => {
+    await makeAgent('run', await makeScript('run', 'Failed'))
+    await makeAgent('middle', await makeScript('middle'))
+    await makeAgent('final', await makeScript('final'))
+
+    // run -->|Passed| middle --> final
+    // run returns Failed, so middle is skipped; final must also be skipped
+    const events = await run(
+      `---\nname: propagate\n---\n\`\`\`mermaid\nflowchart LR\n    run -->|Passed| middle\n    middle --> final\n\`\`\``,
+    )
+    const agents = events.map(e => (e as { agent?: string }).agent).filter(Boolean)
+    expect(agents).not.toContain('middle')
+    expect(agents).not.toContain('final')
+  })
+
   it('enriches manifest with report block after agent completes', async () => {
     await makeAgent('fetch', await makeScript('fetch'))
     await makeAgent('done', await makeScript('done'))

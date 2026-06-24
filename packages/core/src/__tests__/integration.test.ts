@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdir, writeFile, rm, chmod } from 'node:fs/promises'
+import { mkdir, writeFile, rm, chmod, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { runPipeline } from '../index.js'
@@ -93,7 +93,6 @@ describe('runPipeline integration', () => {
     }
 
     const done = events.find(e => e.type === 'pipeline:done') as Extract<RunEvent, { type: 'pipeline:done' }>
-    const { readFile } = await import('node:fs/promises')
     const stateContent = await readFile(join(done.sessionDir, 'pipeline-run.json'), 'utf-8')
     const state = JSON.parse(stateContent)
     expect(state.status).toBe('Passed')

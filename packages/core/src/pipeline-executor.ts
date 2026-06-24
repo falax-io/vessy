@@ -41,7 +41,6 @@ export class PipelineExecutor {
         yield { type: 'agent:start', agent: agentName, folder, session: this.artifactManager.id }
       }
 
-      // Execute ready agents in parallel
       const results = await Promise.allSettled(
         ready.map(agentName => {
           const folder = folderMap.get(agentName)!
@@ -57,7 +56,6 @@ export class PipelineExecutor {
         }),
       )
 
-      // Process results in same order as ready list
       for (let i = 0; i < ready.length; i++) {
         const agentName = ready[i]
         const folder = folderMap.get(agentName)!
@@ -68,7 +66,6 @@ export class PipelineExecutor {
           const { status, artifacts } = result.value
           const report = this.reportManager.completeAgent(agentName, status)
 
-          // Enrich manifest with report block
           let existingManifest: AgentManifest | undefined
           try {
             existingManifest = await this.artifactManager.readManifest(folder)
@@ -85,13 +82,13 @@ export class PipelineExecutor {
 
           completed.set(agentName, folder)
 
-          // Determine which downstream nodes to skip based on conditional edges
           const node = pipeline.nodes.get(agentName)!
           const hasConditionalEdges = node.edges.some(e => e.label !== undefined)
           if (hasConditionalEdges) {
             for (const edge of node.edges) {
               if (edge.label && edge.label !== status) skipped.add(edge.to)
             }
+            this.propagateSkips(pipeline, completed, skipped)
           }
 
           yield { type: 'agent:complete', agent: agentName, status, artifacts, report }
@@ -107,7 +104,28 @@ export class PipelineExecutor {
           const hasFailedHandler = node.edges.some(e => e.label === 'Failed')
           if (!hasFailedHandler) {
             for (const id of remaining) skipped.add(id)
+            this.propagateSkips(pipeline, completed, skipped)
           }
+        }
+      }
+    }
+  }
+
+  private propagateSkips(
+    pipeline: ParsedPipeline,
+    completed: Map<string, string>,
+    skipped: Set<string>,
+  ): void {
+    let changed = true
+    while (changed) {
+      changed = false
+      for (const [id, node] of pipeline.nodes) {
+        if (skipped.has(id) || completed.has(id)) continue
+        const hasSkippedPred = node.predecessors.some(p => skipped.has(p))
+        const hasCompletedPred = node.predecessors.some(p => completed.has(p))
+        if (hasSkippedPred && !hasCompletedPred) {
+          skipped.add(id)
+          changed = true
         }
       }
     }

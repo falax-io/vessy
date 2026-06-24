@@ -29,16 +29,19 @@ export async function* runPipeline(
   await artifactManager.init(pipeline.name)
   const startTime = Date.now()
 
+  let hasFailed = false
   for await (const event of executor.execute(pipeline)) {
+    if (event.type === 'agent:error' || (event.type === 'agent:complete' && event.status === 'Failed')) {
+      hasFailed = true
+    }
     yield event
   }
 
   const totalDurationMs = Date.now() - startTime
-  const state = await artifactManager.readRunState()
-  const hasFailed = Object.values(state.agents).some(a => a.status === 'Failed')
   const pipelineStatus = hasFailed ? 'Failed' : 'Passed'
 
   const pipelineReport = reportManager.buildPipelineReport(pipelineStatus, totalDurationMs)
+  const state = await artifactManager.readRunState()
   state.status = pipelineStatus
   state.completedAt = new Date().toISOString()
   state.report = pipelineReport
