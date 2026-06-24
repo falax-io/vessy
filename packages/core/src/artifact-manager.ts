@@ -1,7 +1,10 @@
 import { mkdir, writeFile, readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, basename } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { AgentManifest, PipelineRunState } from '@vessy/sdk'
+
+const MANIFEST_FILE = 'manifest.json'
+const RUN_STATE_FILE = 'pipeline-run.json'
 
 export class ArtifactManager {
   private readonly sessionId: string
@@ -47,31 +50,33 @@ export class ArtifactManager {
   }
 
   async writeManifest(folderPath: string, manifest: AgentManifest): Promise<void> {
-    await writeFile(join(folderPath, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8')
+    await this.writeJson(join(folderPath, MANIFEST_FILE), manifest)
   }
 
   async readManifest(folderPath: string): Promise<AgentManifest> {
-    const content = await readFile(join(folderPath, 'manifest.json'), 'utf-8')
-    return JSON.parse(content) as AgentManifest
+    return this.readJson<AgentManifest>(join(folderPath, MANIFEST_FILE))
   }
 
   async readRunState(): Promise<PipelineRunState> {
-    const content = await readFile(join(this.sessionDir, 'pipeline-run.json'), 'utf-8')
-    return JSON.parse(content) as PipelineRunState
+    return this.readJson<PipelineRunState>(join(this.sessionDir, RUN_STATE_FILE))
   }
 
   async writeRunState(state: PipelineRunState): Promise<void> {
-    await writeFile(
-      join(this.sessionDir, 'pipeline-run.json'),
-      JSON.stringify(state, null, 2),
-      'utf-8',
-    )
+    await this.writeJson(join(this.sessionDir, RUN_STATE_FILE), state)
   }
 
   async updateAgentStatus(agentName: string, folderPath: string, status: string): Promise<void> {
     const state = await this.readRunState()
-    const folderName = folderPath.split('/').pop()!
-    state.agents[agentName] = { folder: folderName, status }
+    state.agents[agentName] = { folder: basename(folderPath), status }
     await this.writeRunState(state)
+  }
+
+  private async readJson<T>(filePath: string): Promise<T> {
+    const content = await readFile(filePath, 'utf-8')
+    return JSON.parse(content) as T
+  }
+
+  private async writeJson(filePath: string, value: unknown): Promise<void> {
+    await writeFile(filePath, JSON.stringify(value, null, 2), 'utf-8')
   }
 }
