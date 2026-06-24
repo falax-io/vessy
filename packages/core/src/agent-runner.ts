@@ -1,8 +1,8 @@
 import { spawn } from 'node:child_process'
-import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import Anthropic from '@anthropic-ai/sdk'
-import type { AgentDefinition, TokenUsage } from '@vessy/sdk'
+import type { AgentDefinition, AgentManifest, TokenUsage } from '@vessy/sdk'
 import type { ArtifactManager } from './artifact-manager.js'
 import type { ReportManager } from './report-manager.js'
 
@@ -30,7 +30,7 @@ export class AgentRunner {
       return this.runScript(agent, folder, env)
     }
     if (agent.type === 'llm') {
-      return this.runLlm(agent, folder, env)
+      return this.runLlm(agent, folder, predecessorFolders)
     }
     throw new Error(`Agent type '${agent.type}' is not supported in this version`)
   }
@@ -73,14 +73,13 @@ export class AgentRunner {
       })
     })
 
-    let manifestContent: string
+    let manifest: AgentManifest
     try {
-      manifestContent = await readFile(join(folder, 'manifest.json'), 'utf-8')
+      manifest = await this.artifactManager.readManifest(folder)
     } catch {
       throw new Error(`Agent '${agent.name}': script did not write manifest.json`)
     }
 
-    const manifest = JSON.parse(manifestContent) as { status: string; outputs: string[] }
     const artifacts = await readdir(folder)
     return { status: manifest.status, artifacts }
   }
@@ -88,11 +87,11 @@ export class AgentRunner {
   private async runLlm(
     agent: AgentDefinition,
     folder: string,
-    env: NodeJS.ProcessEnv,
+    predecessorFolders: Record<string, string>,
   ): Promise<AgentRunResult> {
-    const contextLines = Object.entries(env)
-      .filter(([k]) => k.startsWith('VESSY_INPUT_'))
-      .map(([k, v]) => `${k}=${v}`)
+    const contextLines = Object.entries(predecessorFolders).map(
+      ([name, path]) => `VESSY_INPUT_${name.toUpperCase()}=${path}`,
+    )
 
     const userMessage =
       contextLines.length > 0
