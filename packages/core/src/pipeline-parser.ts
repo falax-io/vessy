@@ -52,7 +52,7 @@ function buildDag(mermaid: string): Map<string, DagNode> {
     return nodes.get(id)!
   }
 
-  const edgeRe = /(\w+)\s*-->(?:\|([^|]+)\|)?\s*(\w+)/g
+  const edgeRe = /([\w-]+)\s*-->(?:\|([^|]+)\|)?\s*([\w-]+)/g
   let match: RegExpExecArray | null
   while ((match = edgeRe.exec(mermaid)) !== null) {
     const [, from, label, to] = match

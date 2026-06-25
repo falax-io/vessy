@@ -23,7 +23,7 @@ export async function* runPipeline(
   const agentLoader = new AgentLoader(agentsDir)
   const artifactManager = new ArtifactManager(sessionsDir, pipeline.nodes.size)
   const reportManager = new ReportManager()
-  const agentRunner = new AgentRunner(artifactManager, reportManager)
+  const agentRunner = new AgentRunner(artifactManager, reportManager, cwd)
   const executor = new PipelineExecutor(agentLoader, artifactManager, reportManager, agentRunner)
 
   // Validate all agents exist before starting execution

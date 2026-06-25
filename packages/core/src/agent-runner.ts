@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { readdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { isAbsolute, join, resolve as resolvePath } from 'node:path'
 import Anthropic from '@anthropic-ai/sdk'
 import type { AgentDefinition, AgentManifest, TokenUsage } from '@vessy/sdk'
 import type { ArtifactManager } from './artifact-manager.js'
@@ -17,6 +17,7 @@ export class AgentRunner {
   constructor(
     private readonly artifactManager: ArtifactManager,
     private readonly reportManager: ReportManager,
+    private readonly projectRoot: string = process.cwd(),
   ) {}
 
   async run(
@@ -53,7 +54,10 @@ export class AgentRunner {
     env: NodeJS.ProcessEnv,
   ): Promise<AgentRunResult> {
     await new Promise<void>((resolve, reject) => {
-      const child = spawn(agent.script!, agent.args ?? [], { env, cwd: folder, stdio: 'inherit' })
+      const scriptPath = isAbsolute(agent.script!)
+        ? agent.script!
+        : resolvePath(this.projectRoot, agent.script!)
+      const child = spawn(scriptPath, agent.args ?? [], { env, cwd: folder, stdio: 'inherit' })
 
       const timer = agent.timeout
         ? setTimeout(() => {
