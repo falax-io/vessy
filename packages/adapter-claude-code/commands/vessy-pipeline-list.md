@@ -1,6 +1,6 @@
 ---
 description: List all pipelines in .vessy/pipelines/
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/dist/cli.cjs:*)"]
+allowed-tools: ["Bash(node:*)"]
 ---
 
 List all pipelines in the current project's `.vessy/pipelines/` directory.

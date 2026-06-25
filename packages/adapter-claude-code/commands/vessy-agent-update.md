@@ -1,7 +1,7 @@
 ---
 description: Update an existing agent's definition
 argument-hint: "<agent-name>"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/dist/cli.cjs:*)", "Write"]
+allowed-tools: ["Bash(node:*)", "Write"]
 ---
 
 Update the agent named `$ARGUMENTS`.

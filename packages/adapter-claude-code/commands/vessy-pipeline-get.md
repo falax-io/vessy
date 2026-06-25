@@ -1,7 +1,7 @@
 ---
 description: Show the Mermaid diagram for a named pipeline
 argument-hint: "<pipeline-name>"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/dist/cli.cjs:*)"]
+allowed-tools: ["Bash(node:*)"]
 ---
 
 Show the diagram for the pipeline named `$ARGUMENTS`.

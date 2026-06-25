@@ -1,6 +1,6 @@
 ---
 description: List all agents in .vessy/agents/
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/dist/cli.cjs:*)"]
+allowed-tools: ["Bash(node:*)"]
 ---
 
 List all agents defined in the current project's `.vessy/agents/` directory.

@@ -1,7 +1,7 @@
 ---
 description: Delete an agent from .vessy/agents/
 argument-hint: "<agent-name>"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/dist/cli.cjs:*)", "Bash(rm .vessy/agents/*.yaml)"]
+allowed-tools: ["Bash(node:*)", "Bash(rm .vessy/agents/*.yaml)"]
 ---
 
 Delete the agent named `$ARGUMENTS`.

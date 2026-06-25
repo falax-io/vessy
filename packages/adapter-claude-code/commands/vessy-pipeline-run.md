@@ -1,7 +1,7 @@
 ---
 description: Run a vessy pipeline by name
 argument-hint: "<pipeline-name>"
-allowed-tools: ["Bash(node ${CLAUDE_PLUGIN_ROOT}/dist/cli.cjs:*)"]
+allowed-tools: ["Bash(node:*)"]
 ---
 
 If `$ARGUMENTS` is empty, ask the user for the pipeline name before running anything.
