@@ -21,19 +21,22 @@ If building from description, confirm the final diagram with the user before wri
 
 ## Step 3 — Write the file
 
-Write `.vessy/pipelines/<name>.md` using the Write tool:
+Write `.vessy/pipelines/<name>.md` using the Write tool. The file must have this structure:
 
-```markdown
----
-name: <name>
-description: <description>
----
+- A YAML frontmatter block with `name:` and optionally `description:`
+- A fenced Mermaid code block containing `flowchart LR` and the edges
 
-```mermaid
-flowchart LR
-    <edges>
-```
-```
+Example for a pipeline named `research` with description `Fetch and summarize`:
+
+    ---
+    name: research
+    description: Fetch and summarize
+    ---
+
+    ```mermaid
+    flowchart LR
+        fetch --> summarize
+    ```
 
 Omit the `description:` frontmatter line if none was provided.
 
