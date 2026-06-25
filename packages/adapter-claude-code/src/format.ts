@@ -22,17 +22,12 @@ export function formatEvent(event: RunEvent): string {
       const duration = formatDuration(event.report.durationMs)
 
       if (event.status === 'Passed') {
-        let line = `✓  ${padded}${event.status}`
-        line = line.padEnd(line.length + 5) // Pad status to align duration
-        line += duration
-
+        let line = `✓  ${padded}Passed     ${duration}`
         if (event.report.tokens && event.report.tokens.total > 0) {
-          line += `  ${event.report.tokens.total} tok`
-          line += `  $${event.report.tokens.costUsd.toFixed(3)}`
+          line += `  ${event.report.tokens.total} tok  $${event.report.tokens.costUsd.toFixed(3)}`
         }
         return line
       } else {
-        // Non-Passed status
         return `✗  ${padded}${event.status} ${duration}`
       }
     }
@@ -48,31 +43,14 @@ export function formatEvent(event: RunEvent): string {
   }
 }
 
+const LABEL_WIDTH = 16
+
 export function formatDone(report: PipelineReport, sessionDir: string): string {
-  const lines: string[] = []
-
-  // Separator line
-  lines.push('─'.repeat(80))
-
-  // Pipeline summary line
-  let pipelineLine = 'Pipeline'
-  pipelineLine = pipelineLine.padEnd(16) // "Pipeline" (8 chars) + 8 spaces
-  pipelineLine += report.status
-  pipelineLine = pipelineLine.padEnd(pipelineLine.length + 3) // 3 spaces after status
-  pipelineLine += formatDuration(report.totalDurationMs)
-
+  const duration = formatDuration(report.totalDurationMs)
+  let pipelineLine = `${'Pipeline'.padEnd(LABEL_WIDTH)}${report.status}   ${duration}`
   if (report.tokens.costUsd > 0) {
     pipelineLine += `  $${report.tokens.costUsd.toFixed(3)}`
   }
-
-  lines.push(pipelineLine)
-
-  // Session line
-  let sessionLine = 'Session'
-  sessionLine = sessionLine.padEnd(16) // "Session" (7 chars) + 9 spaces
-  sessionLine += sessionDir
-
-  lines.push(sessionLine)
-
-  return lines.join('\n')
+  const sessionLine = `${'Session'.padEnd(LABEL_WIDTH)}${sessionDir}`
+  return ['─'.repeat(80), pipelineLine, sessionLine].join('\n')
 }

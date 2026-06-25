@@ -23,7 +23,7 @@ export async function pipelinesCommand(): Promise<void> {
 
   for (const file of mdFiles) {
     const content = await readFile(join(pipelinesDir, file), 'utf-8')
-    const pipeline = parsePipeline(content as string)
+    const pipeline = parsePipeline(content)
     const line = pipeline.description
       ? `${pipeline.name.padEnd(NAME_WIDTH)}${pipeline.description}`
       : pipeline.name
