@@ -1,4 +1,2 @@
 github: falax-io
-custom:
-  - name: Paypal
-    url: https://paypal.me/falaxeng
+custom: ["https://paypal.me/falaxeng"]
