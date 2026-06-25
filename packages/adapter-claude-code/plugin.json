@@ -1,0 +1,11 @@
+{
+  "name": "vessy",
+  "version": "0.1.0",
+  "description": "Agentic pipeline orchestrator for Claude Code",
+  "skills": [
+    { "name": "vessy-run-pipeline",    "command": "vessy:run-pipeline" },
+    { "name": "vessy-agents",          "command": "vessy:agents" },
+    { "name": "vessy-agent-pipelines", "command": "vessy:agent-pipelines" },
+    { "name": "vessy-add-agent",       "command": "vessy:add-agent" }
+  ]
+}
