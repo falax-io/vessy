@@ -6,8 +6,11 @@ export async function agentGetCommand(name: string): Promise<void> {
   let content: string
   try {
     content = await readFile(filePath, 'utf-8')
-  } catch {
-    console.error(`Agent '${name}' not found.`)
+  } catch (err) {
+    const isNotFound = (err as NodeJS.ErrnoException).code === 'ENOENT'
+    console.error(
+      isNotFound ? `Agent '${name}' not found.` : `Error reading agent '${name}': ${String(err)}`
+    )
     process.exit(1)
   }
   process.stdout.write(content)

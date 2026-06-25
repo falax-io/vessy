@@ -6,12 +6,12 @@ vi.mock('node:fs/promises', () => ({
 
 describe('agentGetCommand', () => {
   let stdoutSpy: ReturnType<typeof vi.spyOn>
-  let stderrSpy: ReturnType<typeof vi.spyOn>
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
   let exitSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
-    stderrSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     exitSpy = vi.spyOn(process, 'exit').mockImplementation(
       (() => { throw new Error('process.exit') }) as never
     )
@@ -20,7 +20,7 @@ describe('agentGetCommand', () => {
   afterEach(() => {
     vi.clearAllMocks()
     stdoutSpy.mockRestore()
-    stderrSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
     exitSpy.mockRestore()
   })
 
@@ -44,7 +44,21 @@ describe('agentGetCommand', () => {
     const { agentGetCommand } = await import('../commands/agent-get.js')
     await expect(agentGetCommand('missing')).rejects.toThrow('process.exit')
 
-    expect(stderrSpy).toHaveBeenCalledWith("Agent 'missing' not found.")
+    expect(consoleErrorSpy).toHaveBeenCalledWith("Agent 'missing' not found.")
+    expect(exitSpy).toHaveBeenCalledWith(1)
+  })
+
+  it('prints descriptive error to stderr and exits with code 1 for non-ENOENT errors', async () => {
+    const { readFile } = await import('node:fs/promises')
+    const permErr = Object.assign(new Error('permission denied'), { code: 'EACCES' })
+    vi.mocked(readFile).mockRejectedValue(permErr)
+
+    const { agentGetCommand } = await import('../commands/agent-get.js')
+    await expect(agentGetCommand('myagent')).rejects.toThrow('process.exit')
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      `Error reading agent 'myagent': Error: permission denied`
+    )
     expect(exitSpy).toHaveBeenCalledWith(1)
   })
 })
