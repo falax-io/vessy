@@ -9,7 +9,7 @@ Update the agent named `$ARGUMENTS`.
 ## Step 1 — Show current definition
 
 ```!
-node "${CLAUDE_PLUGIN_ROOT}/dist/cli.cjs" agent-get $ARGUMENTS
+node "${CLAUDE_PLUGIN_ROOT}/dist/cli.cjs" agent-get "$ARGUMENTS"
 ```
 
 Display the current YAML to the user.
@@ -26,4 +26,4 @@ Write the updated YAML to `.vessy/agents/$ARGUMENTS.yaml` using the Write tool, 
 
 ## Step 4 — Confirm
 
-Report the updated file path: `.vessy/agents/$ARGUMENTS.yaml`.
+Report: "Agent `<name>` updated at `.vessy/agents/<name>.yaml`." (substitute the actual agent name).

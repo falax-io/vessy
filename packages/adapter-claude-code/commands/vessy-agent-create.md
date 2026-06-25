@@ -8,7 +8,7 @@ Create a new agent definition by gathering information conversationally, then wr
 ## Step 1 — Ask for basic information
 
 Ask the user:
-- **Name**: What should the agent be called? (used as the filename and node ID in pipelines)
+- **Name**: What should the agent be called? (used as the filename and node ID in pipelines — must contain only lowercase letters, digits, and hyphens; no spaces or special characters)
 - **Type**: `llm`, `script`, or `composite`
 
 ## Step 2 — Ask type-specific fields
@@ -42,6 +42,7 @@ system_prompt: |
 name: <name>
 type: script
 script: <path>
+args: []  # omit if no arguments
 ```
 
 **Composite agent template:**
