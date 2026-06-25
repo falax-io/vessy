@@ -68,6 +68,30 @@ describe('runPipeline integration', () => {
     expect(done!.sessionDir).toContain('session-')
   })
 
+  it('throws before starting execution when a pipeline node has no agent file', async () => {
+    const script = await makeScript('existing')
+    await writeFile(
+      join(root, '.vessy', 'agents', 'existing.yaml'),
+      `name: existing\ntype: script\nscript: ${script}\n`,
+    )
+    await writeFile(
+      join(root, '.vessy', 'pipelines', 'bad.md'),
+      `---\nname: bad\n---\n\`\`\`mermaid\nflowchart LR\n    existing --> missing\n\`\`\`\n`,
+    )
+
+    const events: RunEvent[] = []
+    await expect(async () => {
+      for await (const e of runPipeline('bad', {
+        agentsDir: join(root, '.vessy', 'agents'),
+        pipelinesDir: join(root, '.vessy', 'pipelines'),
+        sessionsDir: join(root, '.vessy', 'sessions'),
+      })) {
+        events.push(e)
+      }
+    }).rejects.toThrow("Agent 'missing' not found")
+    expect(events).toHaveLength(0)
+  })
+
   it('writes pipeline-run.json with final report to session dir', async () => {
     const script = await makeScript('solo')
     await writeFile(

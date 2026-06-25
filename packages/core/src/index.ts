@@ -26,6 +26,9 @@ export async function* runPipeline(
   const agentRunner = new AgentRunner(artifactManager, reportManager)
   const executor = new PipelineExecutor(agentLoader, artifactManager, reportManager, agentRunner)
 
+  // Validate all agents exist before starting execution
+  await Promise.all([...pipeline.nodes.keys()].map(n => agentLoader.load(n)))
+
   await artifactManager.init(pipeline.name)
   const startTime = Date.now()
 

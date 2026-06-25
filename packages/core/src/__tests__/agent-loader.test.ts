@@ -28,6 +28,16 @@ describe('AgentLoader', () => {
     expect(agent.model).toBe('claude-opus-4-7')
   })
 
+  it('loads a valid llm agent with snake_case system_prompt', async () => {
+    await writeFile(
+      join(agentsDir, 'researcher2.yaml'),
+      'name: researcher2\ntype: llm\nmodel: claude-opus-4-7\nsystem_prompt: You are a researcher.\n',
+    )
+    const loader = new AgentLoader(agentsDir)
+    const agent = await loader.load('researcher2')
+    expect(agent.systemPrompt).toBe('You are a researcher.')
+  })
+
   it('loads a valid script agent with timeout and custom statuses', async () => {
     await writeFile(
       join(agentsDir, 'runner.yaml'),

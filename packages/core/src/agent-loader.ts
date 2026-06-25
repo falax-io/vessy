@@ -14,9 +14,15 @@ export class AgentLoader {
     } catch {
       throw new Error(`Agent '${name}' not found at ${filePath}`)
     }
-    const raw = parse(content) as AgentDefinition
-    this.validate(raw, filePath)
-    return raw
+    const raw = parse(content) as Record<string, unknown>
+    // Normalize snake_case YAML keys to camelCase for TypeScript interface
+    if ('system_prompt' in raw) {
+      raw.systemPrompt = raw.system_prompt
+      delete raw.system_prompt
+    }
+    const agent = raw as AgentDefinition
+    this.validate(agent, filePath)
+    return agent
   }
 
   async list(): Promise<AgentDefinition[]> {
