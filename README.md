@@ -20,10 +20,8 @@
    - [Conditional edges](#conditional-edges)
 5. [Claude Code integration](#claude-code-integration)
    - [Installing the plugin](#installing-the-plugin)
-   - [`/vessy:agents`](#vessyagents)
-   - [`/vessy:add-agent`](#vessyadd-agent)
-   - [`/vessy:agent-pipelines`](#vessyagent-pipelines)
-   - [`/vessy:run-pipeline`](#vessyrun-pipeline)
+   - [Agent commands](#agent-commands)
+   - [Pipeline commands](#pipeline-commands)
 6. [Run sessions and artifacts](#run-sessions-and-artifacts)
 7. [Package architecture](#package-architecture)
 
@@ -173,7 +171,7 @@ flowchart LR
 ```
 ```
 
-The `name` field is required. `description` is optional and is shown in `/vessy:agent-pipelines`.
+The `name` field is required. `description` is optional and is shown in `/vessy:pipeline-list`.
 
 ### Sequential pipeline
 
@@ -223,7 +221,7 @@ statuses: [Passed, Failed, NeedsReview]
 
 ## Claude Code integration
 
-vessy ships as a Claude Code plugin (`@vessy/adapter-claude-code`). Once installed, you get four slash commands that let Claude run and manage your pipelines without leaving the chat.
+vessy ships as a Claude Code plugin (`@vessy/adapter-claude-code`). Once installed, you get eleven slash commands that let Claude run and fully manage your agents and pipelines without leaving the chat.
 
 ### Installing the plugin
 
@@ -240,14 +238,16 @@ This produces `packages/adapter-claude-code/dist/cli.cjs`, a self-contained bund
 **Step 2 — Register the plugin with Claude Code:**
 
 ```bash
-claude plugin install /path/to/vessy/packages/adapter-claude-code
+ln -sf /path/to/vessy/packages/adapter-claude-code ~/.claude/skills/vessy
 ```
 
-Install once, use in any project that has a `.vessy/` directory. The four `/vessy:*` slash commands become available immediately in your Claude Code session.
+Install once, use in any project that has a `.vessy/` directory. The `/vessy:*` slash commands become available immediately in your Claude Code session.
 
 ---
 
-### `/vessy:agents`
+### Agent commands
+
+#### `/vessy:agent-list`
 
 Lists all agents defined in `.vessy/agents/`.
 
@@ -257,17 +257,25 @@ analyst       llm     claude-haiku-4-5-20251001
 fetch         script
 ```
 
-**When to use:** verify which agents are available before running a pipeline, or after adding a new agent.
+---
+
+#### `/vessy:agent-get <name>`
+
+Displays the raw YAML definition of a single agent.
+
+```
+/vessy:agent-get researcher
+```
 
 ---
 
-### `/vessy:add-agent`
+#### `/vessy:agent-create`
 
-Adds a new agent interactively. Claude asks for the name, type, and type-specific fields, then writes the YAML file directly to `.vessy/agents/<name>.yaml`.
+Creates a new agent interactively. Claude asks for the name, type, and type-specific fields, then writes the YAML file directly to `.vessy/agents/<name>.yaml`.
 
 **Claude will ask:**
 
-1. Agent name
+1. Agent name (lowercase letters, digits, and hyphens only)
 2. Type: `llm`, `script`, or `composite`
 3. For `llm`: model name and system prompt
 4. For `script`: path to the script and optional arguments
@@ -277,31 +285,81 @@ No CLI command — Claude writes the file for you via the Write tool.
 
 ---
 
-### `/vessy:agent-pipelines [name]`
+#### `/vessy:agent-update <name>`
 
-**Without an argument:** lists all pipelines with their names and descriptions.
+Updates an existing agent interactively. Claude shows the current definition, asks what you want to change, and rewrites the file — touching only the fields you mention.
+
+```
+/vessy:agent-update researcher
+```
+
+---
+
+#### `/vessy:agent-delete <name>`
+
+Deletes an agent after showing a preview and asking for confirmation. Type `yes` to confirm.
+
+```
+/vessy:agent-delete researcher
+```
+
+---
+
+### Pipeline commands
+
+#### `/vessy:pipeline-list`
+
+Lists all pipelines with their names and descriptions.
 
 ```
 research              Fetch, analyze, and write a research report
 etl
 ```
 
-**With a pipeline name:** shows the Mermaid diagram for that pipeline.
+---
+
+#### `/vessy:pipeline-get <name>`
+
+Shows the Mermaid diagram for a pipeline and describes its flow in one sentence.
 
 ```
-/vessy:agent-pipelines research
+/vessy:pipeline-get research
 ```
-
-Claude renders the diagram and describes the pipeline's flow in one sentence.
 
 ---
 
-### `/vessy:run-pipeline <name>`
+#### `/vessy:pipeline-create`
+
+Creates a new pipeline interactively. Claude asks for a name and optional description, helps you define the flow (nodes and edges), and writes the Markdown file to `.vessy/pipelines/<name>.md`.
+
+---
+
+#### `/vessy:pipeline-update <name>`
+
+Updates an existing pipeline interactively. Claude shows the current file, asks what you want to change (description, nodes, edges), and rewrites the file.
+
+```
+/vessy:pipeline-update research
+```
+
+---
+
+#### `/vessy:pipeline-delete <name>`
+
+Deletes a pipeline after showing a preview and asking for confirmation. Type `yes` to confirm.
+
+```
+/vessy:pipeline-delete research
+```
+
+---
+
+#### `/vessy:pipeline-run <name>`
 
 Runs a pipeline by name and streams the output in real time.
 
 ```
-/vessy:run-pipeline research
+/vessy:pipeline-run research
 ```
 
 **Output format:**
@@ -386,7 +444,7 @@ vessy is a TypeScript monorepo (pnpm workspaces + Turbo):
 |---|---|
 | `@vessy/sdk` | Shared TypeScript interfaces (`AgentDefinition`, `RunEvent`, `PipelineReport`, …). No runtime code. |
 | `@vessy/core` | Execution engine. Exports `runPipeline(name, opts?)` — an async generator that yields `RunEvent` values. |
-| `@vessy/adapter-claude-code` | Claude Code plugin. Bundles `@vessy/core` into `dist/cli.cjs` via esbuild. Ships with `.claude-plugin/plugin.json` and four `commands/*.md` files that register the `/vessy:*` slash commands. |
+| `@vessy/adapter-claude-code` | Claude Code plugin. Bundles `@vessy/core` into `dist/cli.cjs` via esbuild. Ships with `.claude-plugin/plugin.json` and eleven `commands/*.md` files that register the `/vessy:*` slash commands. |
 
 **`runPipeline` usage (TypeScript):**
 
