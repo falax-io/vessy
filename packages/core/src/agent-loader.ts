@@ -20,7 +20,7 @@ export class AgentLoader {
       raw.systemPrompt = raw.system_prompt
       delete raw.system_prompt
     }
-    const agent = raw as AgentDefinition
+    const agent = raw as unknown as AgentDefinition
     this.validate(agent, filePath)
     return agent
   }
