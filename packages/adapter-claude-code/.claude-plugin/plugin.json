@@ -1,0 +1,9 @@
+{
+  "name": "vessy",
+  "version": "0.1.0",
+  "description": "Agentic pipeline orchestrator for Claude Code",
+  "author": {
+    "name": "Gabriele Cafiero",
+    "email": "falax.eng@gmail.com"
+  }
+}

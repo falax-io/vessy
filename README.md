@@ -227,11 +227,23 @@ vessy ships as a Claude Code plugin (`@vessy/adapter-claude-code`). Once install
 
 ### Installing the plugin
 
+**Step 1 — Build the CLI bundle:**
+
 ```bash
-claude plugin install /path/to/packages/adapter-claude-code
+cd /path/to/vessy
+pnpm install
+pnpm --filter @vessy/adapter-claude-code build
 ```
 
-The plugin bundles everything including `@vessy/core` — no project-level installation required. Install once, use in any project that has a `.vessy/` directory.
+This produces `packages/adapter-claude-code/dist/cli.cjs`, a self-contained bundle that includes `@vessy/core` and all dependencies.
+
+**Step 2 — Register the plugin with Claude Code:**
+
+```bash
+claude plugin install /path/to/vessy/packages/adapter-claude-code
+```
+
+Install once, use in any project that has a `.vessy/` directory. The four `/vessy:*` slash commands become available immediately in your Claude Code session.
 
 ---
 
@@ -374,7 +386,7 @@ vessy is a TypeScript monorepo (pnpm workspaces + Turbo):
 |---|---|
 | `@vessy/sdk` | Shared TypeScript interfaces (`AgentDefinition`, `RunEvent`, `PipelineReport`, …). No runtime code. |
 | `@vessy/core` | Execution engine. Exports `runPipeline(name, opts?)` — an async generator that yields `RunEvent` values. |
-| `@vessy/adapter-claude-code` | Claude Code plugin. Bundles `@vessy/core` into `dist/cli.cjs` via esbuild. Includes four skill markdown files. |
+| `@vessy/adapter-claude-code` | Claude Code plugin. Bundles `@vessy/core` into `dist/cli.cjs` via esbuild. Ships with `.claude-plugin/plugin.json` and four `commands/*.md` files that register the `/vessy:*` slash commands. |
 
 **`runPipeline` usage (TypeScript):**
 
