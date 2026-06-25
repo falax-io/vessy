@@ -10,11 +10,11 @@ describe('agentGetCommand', () => {
   let exitSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
-    stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true) as unknown as ReturnType<typeof vi.spyOn>
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     exitSpy = vi.spyOn(process, 'exit').mockImplementation(
       (() => { throw new Error('process.exit') }) as never
-    )
+    ) as unknown as ReturnType<typeof vi.spyOn>
   })
 
   afterEach(() => {
